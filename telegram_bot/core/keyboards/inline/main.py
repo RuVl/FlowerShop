@@ -1,7 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
-from fluent.runtime import FluentLocalization
-
 from env import ServerKeys
+from fluent.runtime import FluentLocalization
 
 
 def get_main_menu(l10n: FluentLocalization) -> InlineKeyboardMarkup:

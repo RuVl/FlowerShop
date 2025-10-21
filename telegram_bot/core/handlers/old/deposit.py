@@ -4,11 +4,10 @@ import aiohttp
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from fluent.runtime import FluentLocalization
-from structlog.typing import FilteringBoundLogger
-
 from core.fsm import DepositState
 from env import ServerKeys
+from fluent.runtime import FluentLocalization
+from structlog.typing import FilteringBoundLogger
 
 logger = logging.getLogger(__name__)
 deposit_router = Router()

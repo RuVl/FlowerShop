@@ -5,14 +5,13 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.types import BotCommand
-from structlog.typing import FilteringBoundLogger
-
 from core.handlers import register_handlers
 from core.includes.logging import setup_logging
 from core.includes.storage import get_storage
 from core.middlewares import register_middlewares
 from env import TelegramKeys
 from redis_listener import redis_listener
+from structlog.typing import FilteringBoundLogger
 
 
 async def run_bot():

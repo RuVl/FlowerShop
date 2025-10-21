@@ -1,7 +1,8 @@
 // app/types/telegram.d.ts
 interface TelegramWebApp {
-    openLink(confirmation_url: any): unknown;
     initData: string;
+
+    openLink(confirmation_url: any): unknown;
 }
 
 interface Window {

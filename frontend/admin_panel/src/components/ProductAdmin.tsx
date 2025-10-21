@@ -62,7 +62,7 @@ const CARD_MAX_WIDTH = 440;
 const CARD_IMAGE_HEIGHT = 220;
 
 const API_URL = import.meta.env.VITE_API_URL;
-console.log("API_URL", API_URL); // Должен быть https://fdd6f884afcb.ngrok-free.app
+console.debug("API_URL", API_URL); // Должен быть https://fdd6f884afcb.ngrok-free.app
 
 const ProductAdmin: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
@@ -79,7 +79,7 @@ const ProductAdmin: React.FC = () => {
         setLoading(true);
         try {
             const res = await api.get(`${API_URL}/products`);
-            console.log("API response for /products:", res.data);
+            console.debug("API response for /products:", res.data);
             if (Array.isArray(res.data)) {
                 setProducts(res.data);
             } else if (res.data && Array.isArray(res.data.data)) {

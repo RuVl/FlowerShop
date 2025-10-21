@@ -4,15 +4,15 @@ from aiogram import Bot, Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
+from core.fsm import SupportState
+from env import TelegramKeys
 from fluent.runtime import FluentLocalization
 from sqlalchemy import select
 from structlog.typing import FilteringBoundLogger
+from utils.escape import escape_md_v2
 
-from core.fsm import SupportState
 from database import async_session
 from database.models import SupportThread
-from env import TelegramKeys
-from utils.escape import escape_md_v2
 
 support_router = Router()
 

@@ -5,16 +5,16 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from aiogram.utils.deep_linking import create_start_link
+from core.fsm import DepositState
+from core.keyboards.inline import get_main_menu
+from core.keyboards.reply import get_contact_button
+from env import ServerKeys
 from fluent.runtime import FluentLocalization
 from sqlalchemy import select
 from structlog.typing import FilteringBoundLogger
 
-from core.fsm import DepositState
-from core.keyboards.inline import get_main_menu
-from core.keyboards.reply import get_contact_button
 from database import async_session
 from database.models import User
-from env import ServerKeys
 
 start_router = Router()
 
