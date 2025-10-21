@@ -205,7 +205,7 @@ export function Cart() {
                     }
                 });
             } catch (e) {
-                console.log('Ошибка логирования add_to_cart:', e);
+                console.debug('Ошибка логирования add_to_cart:', e);
             }
 
             // Оплата
@@ -237,7 +237,7 @@ export function Cart() {
                     }
                 });
             } catch (e) {
-                console.log('Ошибка логирования payment:', e);
+                console.debug('Ошибка логирования payment:', e);
             }
 
             if (window.Telegram?.WebApp) {
@@ -275,6 +275,11 @@ export function Cart() {
         deliveryDetails = bouquetsInfo.join(', ');
     }
 
+    const dateTimeFormat = new Intl.DateTimeFormat('ru', {
+        month: 'long',
+        day: 'numeric',
+    });
+
     return (
         <div className="menu-container" style={{ paddingTop: 30, paddingBottom: 120 }}>
             <div style={{ maxWidth: 700, margin: "0 auto", width: "100%" }}>
@@ -300,6 +305,8 @@ export function Cart() {
                                         <div className="cart-item-no-image">Нет фото</div>
                                     )}
                                 </div>
+
+                                {item.type === 'subscription' ? (
                                 <div className="cart-item-content">
                                     <div className="cart-item-title">{item.title}</div>
                                     <div className="cart-item-row">
@@ -315,6 +322,24 @@ export function Cart() {
                                         <span className="cart-item-price">{item.price} руб.</span>
                                     </div>
                                 </div>
+                                ) : item.type === 'one-time' ? (
+                                    <div className="cart-item-content">
+                                        <div className="cart-item-title">{item.title}</div>
+                                        <div className="cart-item-row">
+                                            <span className="cart-item-label">Дата доставки:</span>
+                                            <span className="cart-item-value">{dateTimeFormat.format(new Date(item.deliveryDate))}</span>
+                                        </div>
+                                        <div className="cart-item-row">
+                                            <span className="cart-item-label">Сумма:</span>
+                                            <span className="cart-item-price">{item.price} руб.</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="cart-item-content">
+                                        Неверный тип заказа
+                                    </div>
+                                )}
+
                                 <button
                                     className="cart-item-remove"
                                     title="Удалить товар"
@@ -325,7 +350,7 @@ export function Cart() {
                             </div>
                         ))}
 
-                        {/*      /!* --- Чекбоксы для доп. товаров --- *!/*/}
+                        {/* --- Чекбоксы для доп. товаров --- */}
                         {/*      {!isCartEmpty && (*/}
                         {/*          <div style={{ marginBottom: 22, marginTop: 10 }}>*/}
                         {/*              <label style={{*/}

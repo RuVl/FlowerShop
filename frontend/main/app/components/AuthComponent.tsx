@@ -21,20 +21,20 @@ export function AuthComponent({ children }: { children: React.ReactNode }) {
                 data,
             });
         } catch (e) {
-            console.log(`Ошибка логирования действия ${action}:`, e);
+            console.debug(`Ошибка логирования действия ${action}:`, e);
         }
     };
 
     useEffect(() => {
         const authenticate = async () => {
-            console.log('AuthComponent: Начало аутентификации');
-            console.log('AuthComponent: API_URL', API_URL);
-            console.log('AuthComponent: Проверка window.Telegram', window.Telegram);
+            console.debug('AuthComponent: Начало аутентификации');
+            console.debug('AuthComponent: API_URL', API_URL);
+            console.debug('AuthComponent: Проверка window.Telegram', window.Telegram);
 
             if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-                console.log('AuthComponent: Telegram WebApp найден');
+                console.debug('AuthComponent: Telegram WebApp найден');
                 const initData = window.Telegram.WebApp.initData;
-                console.log('AuthComponent: initData', initData);
+                console.debug('AuthComponent: initData', initData);
 
                 if (!initData) {
                     console.error('AuthComponent: initData отсутствует');
@@ -43,8 +43,8 @@ export function AuthComponent({ children }: { children: React.ReactNode }) {
                 }
 
                 try {
-                    console.log('AuthComponent: Отправка запроса на', `${API_URL}/api/auth`);
-                    console.log('AuthComponent: Отправляемые данные', { initData });
+                    console.debug('AuthComponent: Отправка запроса на', `${API_URL}/api/auth`);
+                    console.debug('AuthComponent: Отправляемые данные', { initData });
 
                     const response = await axios.post(
                         `${API_URL}/api/auth`,
@@ -67,7 +67,7 @@ export function AuthComponent({ children }: { children: React.ReactNode }) {
                             data: { source: "AuthComponent" }
                         });
                     } catch (e) {
-                        console.log("Ошибка логирования входа:", e);
+                        console.debug("Ошибка логирования входа:", e);
                     }
 
                     // Логгируем запуск миниэппа (можно добавить сюда или ниже, если нужен отдельный момент)
@@ -79,7 +79,7 @@ export function AuthComponent({ children }: { children: React.ReactNode }) {
                             data: { source: "webapp" }
                         });
                     } catch (e) {
-                        console.log("Ошибка логирования запуска миниэппа:", e);
+                        console.debug("Ошибка логирования запуска миниэппа:", e);
                     }
 
                 } catch (err: any) {
@@ -99,7 +99,7 @@ export function AuthComponent({ children }: { children: React.ReactNode }) {
 
             } else {
                 console.error('AuthComponent: Telegram Web App не найден');
-                console.log('AuthComponent: window.Telegram', window.Telegram);
+                console.debug('AuthComponent: window.Telegram', window.Telegram);
                 setError('Telegram Web App not detected');
             }
         };
@@ -108,12 +108,12 @@ export function AuthComponent({ children }: { children: React.ReactNode }) {
     }, []);
 
     if (error) {
-        console.log('AuthComponent: Отображение ошибки', error);
+        console.debug('AuthComponent: Отображение ошибки', error);
         return <div className="text-center text-red-500">Error: {error}</div>;
     }
 
     if (!isAuthenticated) {
-        console.log('AuthComponent: Ожидание аутентификации');
+        console.debug('AuthComponent: Ожидание аутентификации');
         return (
             <div style={{ marginTop: 40, textAlign: 'center' }}>
                 Загрузка товаров...
@@ -121,6 +121,6 @@ export function AuthComponent({ children }: { children: React.ReactNode }) {
         );
     }
 
-    console.log('AuthComponent: Рендеринг дочерних компонентов');
+    console.debug('AuthComponent: Рендеринг дочерних компонентов');
     return <>{children}</>;
 }

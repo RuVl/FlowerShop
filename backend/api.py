@@ -23,6 +23,7 @@ from yookassa import Payment, Configuration
 
 from database import async_session
 from database.models import User, Product, Order, CartItem, Transaction, Delivery, UserActionLog, Source, SourceVisit
+from database.models.cart_item import CartItemType
 from env import ServerKeys, YookassaKeys, RedisKeys
 
 logging.basicConfig(
@@ -541,6 +542,7 @@ async def update_user_balance(user_id: int, update: UserBalanceRequest):
             raise HTTPException(status_code=404, detail="User not found")
         user.balance = Decimal(update.balance)
         await session.commit()
+        await session.refresh(user)
         return UserOut(
             id=user.id,
             user_id=user.user_id,
@@ -631,9 +633,7 @@ async def get_user_orders(user_id: int):
                 email=o.email,
                 comment=o.comment,
             )
-            print(f"\n\n\n\n\n\nOrder ID: {o.id}, deliveries: {deliveries_out}\n\n\n\n\n\n")
             result.append(order_out)
-            print(f"\n\n\n\n\n\n результат: {result}")
         return result
 
 
@@ -645,8 +645,9 @@ class CartItemIn(BaseModel):
     quantity: int = 1
     deliveriesPerMonth: int = 1
     subscriptionMonths: int = 1
-    type: str = "one-time"  # <-- добавить!
-    title: Optional[str] = ""
+    type: CartItemType = CartItemType.ONE_TIME  # <-- добавить!
+    deliveryDate: str | None
+    title: str | None = ""
     photos: Optional[List[str]] = []
 
 
@@ -658,7 +659,8 @@ class CartItemOut(BaseModel):
     price: float
     deliveriesPerMonth: int = 1  # <-- добавить!
     subscriptionMonths: int = 1  # <-- добавить!
-    type: str  # <-- добавить!
+    deliveryDate: str | None  # ISO format
+    type: CartItemType  # <-- добавить!
     title: str = ""
     photos: List[str] = []
 
@@ -666,10 +668,16 @@ class CartItemOut(BaseModel):
 @app.post("/cart_items", response_model=CartItemOut)
 async def add_to_cart(item: CartItemIn):
     async with async_session() as session:
+        try:
+            delivery_date = datetime.fromisoformat(item.deliveryDate) if item.deliveryDate else None
+        except ValueError:
+            delivery_date = None
+
         cart_item = CartItem(
             user_id=item.user_id,
             item_id=item.item_id,
             quantity=item.quantity,
+            deliveryDate=delivery_date,
             deliveriesPerMonth=item.deliveriesPerMonth,
             subscriptionMonths=item.subscriptionMonths,
             price=item.price,
@@ -685,6 +693,7 @@ async def add_to_cart(item: CartItemIn):
             user_id=cart_item.user_id,
             item_id=cart_item.item_id,
             quantity=cart_item.quantity,
+            deliveryDate=cart_item.deliveryDate.isoformat() if cart_item.deliveryDate is not None else None,
             deliveriesPerMonth=cart_item.deliveriesPerMonth,
             subscriptionMonths=cart_item.subscriptionMonths,
             price=cart_item.price,
@@ -706,6 +715,7 @@ async def get_cart(user_id: int):
                 user_id=i.user_id,
                 item_id=i.item_id,
                 quantity=i.quantity,
+                deliveryDate=i.deliveryDate.isoformat() if i.deliveryDate is not None else None,
                 deliveriesPerMonth=i.deliveriesPerMonth,
                 subscriptionMonths=i.subscriptionMonths,
                 price=i.price,
@@ -891,11 +901,15 @@ async def update_order_status(order_id: int, req: OrderStatusUpdate):
     async with async_session() as session:
         query = select(Order).where(Order.id == order_id)
         result = await session.execute(query)
-        order = result.scalar_one_or_none()
+        order: Order | None = result.scalar_one_or_none()
+
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
+
         order.status = req.status
         await session.commit()
+        await session.refresh(order)
+
         return OrderOut(
             id=order.id,
             user_id=order.user_id,
@@ -957,6 +971,7 @@ async def update_delivery_date(delivery_id: int, req: UpdateDeliveryDateRequest)
             raise HTTPException(status_code=404, detail="Delivery not found")
         delivery.delivery_date = datetime.fromisoformat(req.date)
         await session.commit()
+        await session.refresh(delivery)
         return DeliveryOut(
             id=delivery.id,
             delivery_date=delivery.delivery_date.isoformat(),
@@ -974,6 +989,7 @@ async def update_delivery_status(delivery_id: int, req: DeliveryStatusUpdate):
             raise HTTPException(status_code=404, detail="Delivery not found")
         delivery.status = req.status
         await session.commit()
+        await session.refresh(delivery)
         return DeliveryOut(
             id=delivery.id,
             delivery_date=delivery.delivery_date.isoformat(),
@@ -1261,6 +1277,7 @@ async def yookassa_webhook(request: Request):
                 if target_user:
                     target_user.balance = float(target_user.balance or 0) + float(transaction.amount)
                     await session.commit()
+                    await session.refresh(target_user)
                     # Отправить уведомление получателю
                     notification_data = {
                         "user_id": target_user.user_id,

@@ -271,7 +271,7 @@ export default function AdminOrders() {
                             <MenuItem value="subscription" sx={{ color: "#148400ff" }}>
                                 Подписка
                             </MenuItem>
-                            <MenuItem value="single" sx={{ color: "#d46300ff" }}>
+                            <MenuItem value="one-time" sx={{ color: "#d46300ff" }}>
                                 Разовый
                             </MenuItem>
                         </Select>
