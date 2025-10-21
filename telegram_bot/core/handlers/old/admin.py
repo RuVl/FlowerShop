@@ -1,9 +1,8 @@
 from aiogram import Router, F
 from aiogram.types import Message
+from env import TelegramKeys
 from fluent.runtime import FluentLocalization
 from structlog.typing import FilteringBoundLogger
-
-from env import TelegramKeys
 
 admin_router = Router()
 

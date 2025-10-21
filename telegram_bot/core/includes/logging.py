@@ -3,7 +3,6 @@ import sys
 from pathlib import Path
 
 import structlog
-
 from env import LoggerKeys, TelegramKeys
 
 

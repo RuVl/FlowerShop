@@ -231,13 +231,12 @@ export function Menu({ onGoToCart }: { onGoToCart?: () => void }) {
                         {modalMode === 'one-time' ? (
                             <div className="modal-block modal-onetime">
                                 <label className="modal-label">Дата доставки:</label>
-                                <input
-                                    type="date"
-                                    value={deliveryDate}
-                                    min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
-                                    onChange={e => setDeliveryDate(e.target.value)}
-                                    className="modal-input"
-                                />
+                                <input type="date"
+                                       value={deliveryDate}
+                                       min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
+                                       max={new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10)}
+                                       onChange={e => setDeliveryDate(e.target.value)}
+                                       className="modal-input"/>
                                 <div className="modal-price-block">
                                     <span className="modal-price-label">Стоимость:</span>
                                     <span className="modal-price-value">

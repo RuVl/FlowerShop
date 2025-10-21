@@ -10,6 +10,7 @@ export interface CartItem {
     product_id?: number;
     deliveriesPerMonth?: number;
     subscriptionMonths?: number;
+    deliveryDate?: string;
     quantity?: number;
     type?: 'subscription' | 'one-time';
 }
@@ -59,10 +60,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 setUserId(payload.user_id);
-                console.log('[CartContext] userId из токена:', payload.user_id);
+                console.debug('[CartContext] userId из токена:', payload.user_id);
             } catch (e) {
                 setUserId(null);
-                console.log('[CartContext] Ошибка парсинга токена:', e);
+                console.debug('[CartContext] Ошибка парсинга токена:', e);
             }
         }
     }, []);
@@ -84,13 +85,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     headers: { "ngrok-skip-browser-warning": "true" }
                 });
                 const transactions: TransactionOut[] = res.data;
-                console.log('[CartContext] Транзакции:', transactions);
+                console.debug('[CartContext] Транзакции:', transactions);
                 const hasPending = transactions.some(t => t.status === 'pending');
                 if (!hasPending) {
                     await syncCart(); // Синхронизируем корзину, если нет pending транзакций
                 }
             } catch (e) {
-                console.log('[CartContext] Ошибка проверки транзакций:', e);
+                console.debug('[CartContext] Ошибка проверки транзакций:', e);
             }
         };
 
@@ -101,17 +102,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Синхронизация корзины с сервером
     const syncCart = async () => {
         if (!userId) {
-            console.log('[CartContext] Нет userId для syncCart');
+            console.debug('[CartContext] Нет userId для syncCart');
             return;
         }
         try {
             const res = await axios.get(`${API_URL}/cart_items?user_id=${userId}`, {
                 headers: { "ngrok-skip-browser-warning": "true" }
             });
-            console.log('[CartContext] Ответ сервера /cart_items:', res.data);
+            console.debug('[CartContext] Ответ сервера /cart_items:', res.data);
             setCartItems(Array.isArray(res.data) ? res.data : []);
         } catch (e) {
-            console.log('[CartContext] Ошибка получения корзины:', e);
+            console.debug('[CartContext] Ошибка получения корзины:', e);
             setCartItems([]);
         }
     };
@@ -119,7 +120,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Добавление товара в корзину
     const addToCart = async (item: CartItem) => {
         if (!userId) {
-            console.log('[CartContext] Нет userId для добавления в корзину');
+            console.debug('[CartContext] Нет userId для добавления в корзину');
             return;
         }
         try {
@@ -128,39 +129,40 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 item_id: (item.product_id || item.id).toString(),
                 price: item.price,
                 quantity: item.quantity || 1,
+                deliveryDate: item.deliveryDate,
                 deliveriesPerMonth: item.deliveriesPerMonth ?? 1,
                 subscriptionMonths: item.subscriptionMonths ?? 1,
                 type: item.type, // <-- ДОБАВЬ ЭТО!
                 title: item.title ?? "",
                 photos: item.photos ?? [],
             };
-            console.log('[CartContext] addToCart payload:', payload);
+            console.debug('[CartContext] addToCart payload:', payload);
             await axios.post(`${API_URL}/cart_items`, payload, {
                 headers: { "ngrok-skip-browser-warning": "true" }
             });
             await syncCart();
         } catch (e) {
-            console.log('[CartContext] Ошибка addToCart:', e);
+            console.debug('[CartContext] Ошибка addToCart:', e);
         }
     };
 
     // Удаление товара из корзины
     const removeFromCart = async (cartItemId: number) => {
         try {
-            console.log('[CartContext] removeFromCart id:', cartItemId);
+            console.debug('[CartContext] removeFromCart id:', cartItemId);
             await axios.delete(`${API_URL}/cart_items/${cartItemId}`, {
                 headers: { "ngrok-skip-browser-warning": "true" }
             });
             await syncCart();
         } catch (e) {
-            console.log('[CartContext] Ошибка removeFromCart:', e);
+            console.debug('[CartContext] Ошибка removeFromCart:', e);
         }
     };
 
     // Очистка корзины
     const clearCart = async () => {
         if (!userId) {
-            console.log('[CartContext] Нет userId для очистки корзины');
+            console.debug('[CartContext] Нет userId для очистки корзины');
             return;
         }
         try {
@@ -170,7 +172,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setCartItems([]);
             await syncCart();
         } catch (e) {
-            console.log('[CartContext] Ошибка clearCart:', e);
+            console.debug('[CartContext] Ошибка clearCart:', e);
         }
     };
 
