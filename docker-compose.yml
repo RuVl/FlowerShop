@@ -1,0 +1,123 @@
+volumes:
+  postgres_volume:
+    name: soinshop_db
+
+  redis_volume:
+    name: soinshop_cache
+
+networks:
+  soinshop_backend:
+    driver: bridge
+    name: soinshop_backend
+
+  soinshop_frontend:
+    driver: bridge
+    name: soinshop_frontend
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      additional_contexts:
+        database: ./postgres
+      network: host
+    restart: unless-stopped
+    volumes:
+      - ./postgres/database/migrations/versions:/usr/src/app/database/migrations/versions
+    env_file:
+      - backend/.env
+      - postgres/.env
+      - redis/.env
+    expose:
+      - 8080
+    networks:
+      - soinshop_frontend
+      - soinshop_backend
+    depends_on:
+      - postgres
+
+  telegram_bot:
+    build:
+      context: ./telegram_bot
+      dockerfile: Dockerfile
+      additional_contexts:
+        database: ./postgres
+      network: host
+    restart: unless-stopped
+    volumes:
+      - ./postgres/database/migrations/versions:/usr/src/app/database/migrations/versions
+      - ./telegram_bot/logs:/usr/src/app/logs
+    env_file:
+      - telegram_bot/.env
+      - postgres/.env
+      - redis/.env
+    networks:
+      - soinshop_backend
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:17.6
+    restart: unless-stopped
+    volumes:
+      - postgres_volume:/var/lib/postgresql/data
+    #      - ./postgres/backups:/var/backups/postgres
+    env_file: postgres/.env
+    expose:
+      - 5432
+    networks:
+      - soinshop_backend
+    healthcheck:
+      test: pg_isready -U $$POSTGRES_USER
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:8.2.2
+    restart: unless-stopped
+    env_file: redis/.env
+    expose:
+      - 6379
+    networks:
+      - soinshop_backend
+    volumes:
+      - redis_volume:/data
+
+  nginx-proxy:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - soinshop_frontend
+    depends_on:
+      - backend
+      - frontend-main
+      - frontend-admin-panel
+
+  frontend-main:
+    build:
+      context: ./frontend/main
+      dockerfile: Dockerfile
+      network: host
+    env_file:
+      - frontend/main/.env
+    expose:
+      - 3000
+    networks:
+      - soinshop_frontend
+
+  frontend-admin-panel:
+    build:
+      context: ./frontend/admin_panel
+      dockerfile: Dockerfile
+    env_file:
+      - frontend/admin_panel/.env
+    expose:
+      - 3000
+    networks:
+      - soinshop_frontend

@@ -1,0 +1,14 @@
+# IDE folder
+.idea/
+
+# Virtual enviroment
+venv/
+node_modules/
+
+# Enviroment variables
+**/*.env
+
+# Logging files
+**/*.log
+
+notes.*

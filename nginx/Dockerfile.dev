@@ -1,0 +1,11 @@
+FROM nginx:1.29.2
+LABEL authors="RuVl"
+
+# Copy certs files
+COPY ./certs-dev /etc/nginx/certs
+
+# Copy the nginx configuration file
+COPY ./dev.conf /etc/nginx/conf.d/default.conf
+
+# Start nginx to serve the application (in foreground)
+ENTRYPOINT ["nginx", "-g", "daemon off;"]

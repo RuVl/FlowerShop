@@ -1,0 +1,9 @@
+.react-router
+
+.env.dist
+# TODO .env
+
+build/
+node_modules/
+
+README.md

@@ -1,0 +1,16 @@
+# Server
+uvicorn[standard]~=0.37.0
+fastapi~=0.119.0
+pyjwt~=2.10.1
+
+# Database
+alembic~=1.17.0  # migrations
+alembic-postgresql-enum~=1.8.0  # psql enum migrations
+SQLAlchemy[asyncio]~=2.0.40  # ORM
+asyncpg~=0.30.0  # driver
+
+# Payment
+yookassa~=3.7.1
+
+# Cache
+redis[hiredis]~=6.4.0
