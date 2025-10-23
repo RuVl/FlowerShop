@@ -1,7 +1,7 @@
 from sqlalchemy import Column, BigInteger, ForeignKey, DECIMAL, String, DateTime, func
 from sqlalchemy.orm import relationship
 
-from database.models import Base
+from .base import Base
 
 
 class Transaction(Base):

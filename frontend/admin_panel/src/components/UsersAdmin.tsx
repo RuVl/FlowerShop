@@ -34,7 +34,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import axios from "axios";
+import { api } from "./api.ts";
 
 // Тип пользователя
 export interface UserCardData {
@@ -98,8 +98,6 @@ const AddRandomButton = ({ onClick }: { onClick: () => void }) => (
     </Tooltip>
 );
 
-const API_URL = import.meta.env.VITE_API_URL;
-
 type SortType = "balance_desc" | "balance_asc" | "date_desc" | "date_asc" | "";
 
 const dialogPaperSx = {
@@ -160,14 +158,7 @@ const UsersAdmin: React.FC = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await axios.get<UserCardData[]>(
-                `${API_URL}/users`,
-                {
-                    headers: {
-                        "ngrok-skip-browser-warning": "true",
-                    },
-                }
-            );
+            const res = await api.get<UserCardData[]>('/users');
             setUsers(res.data);
         } catch (e) {
             console.error("Ошибка при загрузке пользователей:", e);
@@ -218,7 +209,7 @@ const UsersAdmin: React.FC = () => {
     const handleLockToggle = async () => {
         if (lockUser) {
             try {
-                await axios.patch(`${API_URL}/users/${lockUser.user_id}/block`, {
+                await api.patch(`/users/${lockUser.user_id}/block`, {
                     blocked: !lockUser.blocked,
                 }, {
                     headers: { "ngrok-skip-browser-warning": "true" }
@@ -247,7 +238,7 @@ const UsersAdmin: React.FC = () => {
     const handleSaveBalance = async () => {
         if (editUser) {
             try {
-                await axios.patch(`${API_URL}/users/${editUser.user_id}/balance`, {
+                await api.patch(`/users/${editUser.user_id}/balance`, {
                     balance: newBalance,
                 }, {
                     headers: { "ngrok-skip-browser-warning": "true" }
@@ -271,10 +262,10 @@ const UsersAdmin: React.FC = () => {
     const handleDeleteUser = async () => {
         if (deleteUser) {
             try {
-                await axios.delete(`${API_URL}/users/${deleteUser.user_id}`, {
+                await api.delete(`/users/${deleteUser.user_id}`, {
                     headers: { "ngrok-skip-browser-warning": "true" }
                 });
-                fetchUsers();
+                await fetchUsers();
             } catch {
                 alert("Ошибка при удалении пользователя");
             }
@@ -289,9 +280,7 @@ const UsersAdmin: React.FC = () => {
         setOrdersOpen(true);
         setOrdersLoading(true);
         try {
-            const res = await axios.get<OrderData[]>(`${API_URL}/users/${user.user_id}/orders`, {
-                headers: { "ngrok-skip-browser-warning": "true" }
-            });
+            const res = await api.get<OrderData[]>(`/users/${user.user_id}/orders`);
             setOrders(res.data);
         } catch {
             alert("Ошибка при загрузке истории заказов пользователя");

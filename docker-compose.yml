@@ -6,13 +6,17 @@ volumes:
     name: soinshop_cache
 
 networks:
-  soinshop_backend:
+  backend:
     driver: bridge
     name: soinshop_backend
 
-  soinshop_frontend:
+  frontend:
     driver: bridge
     name: soinshop_frontend
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
+          ip_range: 172.18.0.0/24
 
 services:
   backend:
@@ -32,8 +36,8 @@ services:
     expose:
       - 8080
     networks:
-      - soinshop_frontend
-      - soinshop_backend
+      - frontend
+      - backend
     depends_on:
       - postgres
 
@@ -53,7 +57,7 @@ services:
       - postgres/.env
       - redis/.env
     networks:
-      - soinshop_backend
+      - backend
     depends_on:
       - postgres
 
@@ -67,7 +71,7 @@ services:
     expose:
       - 5432
     networks:
-      - soinshop_backend
+      - backend
     healthcheck:
       test: pg_isready -U $$POSTGRES_USER
       interval: 15s
@@ -81,7 +85,7 @@ services:
     expose:
       - 6379
     networks:
-      - soinshop_backend
+      - backend
     volumes:
       - redis_volume:/data
 
@@ -89,11 +93,13 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     networks:
-      - soinshop_frontend
+      frontend:
+        ipv4_address: 172.18.1.0
     depends_on:
       - backend
       - frontend-main
@@ -104,20 +110,22 @@ services:
       context: ./frontend/main
       dockerfile: Dockerfile
       network: host
+    restart: unless-stopped
     env_file:
       - frontend/main/.env
     expose:
       - 3000
     networks:
-      - soinshop_frontend
+      - frontend
 
   frontend-admin-panel:
     build:
       context: ./frontend/admin_panel
       dockerfile: Dockerfile
+    restart: unless-stopped
     env_file:
       - frontend/admin_panel/.env
     expose:
       - 3000
     networks:
-      - soinshop_frontend
+      - frontend

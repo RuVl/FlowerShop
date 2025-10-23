@@ -18,9 +18,8 @@ import {
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AddIcon from "@mui/icons-material/Add";
-import axios from "axios";
+import { api } from "./api.ts";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 const BOT_NAME = "soinshop_bot"; // Статичный ник бота
 
 interface SourceStats {
@@ -59,7 +58,7 @@ export default function SourcesAdmin() {
     const fetchSources = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_URL}/sources`);
+            const res = await api.get('/sources');
             setSources(Array.isArray(res.data) ? res.data : []);
             setError(null);
         } catch {
@@ -71,7 +70,7 @@ export default function SourcesAdmin() {
     };
 
     useEffect(() => {
-        fetchSources().then();
+        fetchSources();
     }, []);
 
     // Добавить новый источник (ссылка)
@@ -82,7 +81,7 @@ export default function SourcesAdmin() {
         }
         setAddLoading(true);
         try {
-            await axios.post(`${API_URL}/sources`, {
+            await api.post('/sources', {
                 start_param: newParam.trim(),
                 note: newNote.trim(),
             });

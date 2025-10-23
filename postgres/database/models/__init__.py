@@ -1,3 +1,4 @@
+from .admin import Admin
 from .base import Base
 from .cart_item import CartItem
 from .delivery import Delivery

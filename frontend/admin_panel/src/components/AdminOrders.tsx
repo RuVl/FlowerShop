@@ -224,11 +224,16 @@ export default function AdminOrders() {
                 if (filterType && order.order_type !== filterType) return false;
                 const created = new Date(order.created_at);
                 if (filterStart && created < new Date(filterStart)) return false;
-                if (filterEnd && created > new Date(filterEnd)) return false;
-                return true;
+                return !(filterEnd && created > new Date(filterEnd));
             })
             .sort((a, b) => b.id - a.id);
     }, [orders, filterType, filterStart, filterEnd]);
+
+    const dateTimeFormat = new Intl.DateTimeFormat('ru', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    });
 
     return (
         <Box sx={{ width: "100%", px: { xs: 1, sm: 2, md: 0 }, pb: 4 }}>
@@ -372,7 +377,7 @@ export default function AdminOrders() {
                     <Table sx={{ minWidth: 1250, fontFamily: "Nunito", fontSize: 15 }}>
                         <TableHead>
                             <TableRow sx={{ background: "#E8F0FB" }}>
-                                <TableCell sx={{ fontWeight: 700, fontSize: 17 }}>ID заказа</TableCell>
+                                <TableCell sx={{ fontWeight: 700, fontSize: 17 }}>ID</TableCell>
                                 <TableCell sx={{ fontWeight: 700, fontSize: 17 }}>Телефон</TableCell>
                                 <TableCell sx={{ fontWeight: 700, fontSize: 17 }}>Состав заказа</TableCell>
                                 <TableCell sx={{ fontWeight: 700, fontSize: 17 }}>Сумма</TableCell>
@@ -405,7 +410,14 @@ export default function AdminOrders() {
                                                     {order.items.map((item: any, idx: number) => (
                                                         <li key={idx}>
                                                             <span style={{ fontWeight: 600 }}>{item.title}</span>
-                                                            {` — ${item.deliveries_per_month ?? item.deliveriesPerMonth ?? "-"}×${item.subscription_months ?? item.subscriptionMonths ?? "-"}, `}
+                                                            {item.product_id !== 0 ? (
+                                                                <span>
+                                                                { isSubscription
+                                                                    ? ` — ${item.deliveries_per_month ?? item.deliveriesPerMonth ?? "-"}×${item.subscription_months ?? item.subscriptionMonths ?? "-"}, `
+                                                                    : ` — ${item.deliveryDate ? dateTimeFormat.format(new Date(item.deliveryDate)) : 'нет даты'}, `
+                                                                }
+                                                                </span>
+                                                            ) : ' '}
                                                             <span style={{
                                                                 color: "#159C5B",
                                                                 fontWeight: 500
@@ -473,29 +485,32 @@ export default function AdminOrders() {
                                                     Доставки
                                                 </Button>
                                             ) : (
-                                                <Select
-                                                    value={order.status}
-                                                    onChange={e => handleStatusChange(order.id, e.target.value)}
-                                                    size="small"
-                                                    sx={{
-                                                        minWidth: 120,
-                                                        bgcolor: "#F5F6FB",
-                                                        color: statusObj ? statusObj.color : "#5485E4",
-                                                        fontWeight: 600,
-                                                        fontSize: 15,
-                                                        borderRadius: 2,
-                                                        boxShadow: "0 2px 8px -4px #5485E420",
-                                                        "& .MuiOutlinedInput-notchedOutline": { border: 0 },
-                                                        "&:hover": { bgcolor: "#E8F0FB" },
-                                                    }}
-                                                >
-                                                    {statusOptions.map(opt => (
-                                                        <MenuItem key={opt.value} value={opt.value}
-                                                                  sx={{ color: opt.color }}>
-                                                            {opt.label}
-                                                        </MenuItem>
-                                                    ))}
-                                                </Select>
+                                                <>
+                                                    <div>{order.deliveryDate}</div>
+                                                    <Select
+                                                        value={order.status}
+                                                        onChange={e => handleStatusChange(order.id, e.target.value)}
+                                                        size="small"
+                                                        sx={{
+                                                            minWidth: 120,
+                                                            bgcolor: "#F5F6FB",
+                                                            color: statusObj ? statusObj.color : "#5485E4",
+                                                            fontWeight: 600,
+                                                            fontSize: 15,
+                                                            borderRadius: 2,
+                                                            boxShadow: "0 2px 8px -4px #5485E420",
+                                                            "& .MuiOutlinedInput-notchedOutline": { border: 0 },
+                                                            "&:hover": { bgcolor: "#E8F0FB" },
+                                                        }}
+                                                    >
+                                                        {statusOptions.map(opt => (
+                                                            <MenuItem key={opt.value} value={opt.value}
+                                                                      sx={{ color: opt.color }}>
+                                                                {opt.label}
+                                                            </MenuItem>
+                                                        ))}
+                                                    </Select>
+                                                </>
                                             )}
                                         </TableCell>
                                     </TableRow>

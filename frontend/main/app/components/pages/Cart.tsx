@@ -133,8 +133,9 @@ export function Cart() {
             // Основные товары
             const items = safeCartItems.map((item) => ({
                 product_id: item.item_id ?? item.id,
-                deliveries_per_month: item.deliveriesPerMonth ?? 1,
-                subscription_months: item.subscriptionMonths ?? 1,
+                deliveries_per_month: item.deliveriesPerMonth,
+                subscription_months: item.subscriptionMonths,
+                deliveryDate: item.deliveryDate,
                 price: item.price,
                 title: item.title ?? '',
             }));
@@ -163,8 +164,9 @@ export function Cart() {
             if (deliveryPrice > 0) {
                 items.push({
                     product_id: 0,
-                    deliveries_per_month: 1,
-                    subscription_months: 1,
+                    deliveries_per_month: undefined,
+                    subscription_months: undefined,
+                    deliveryDate: undefined,
                     price: deliveryPrice,
                     title: 'Доставка (Москва в пределах МКАД)',
                 });

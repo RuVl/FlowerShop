@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, Button, CircularProgress, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import axios from "axios";
-
-// Для .env или напрямую укажи адрес своего API:
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+import { api } from "./api.ts";
 
 const ACTIONS = [
     { key: "enter_bot", label: "Перешли в бот" },
@@ -23,10 +20,10 @@ export default function StatisticsAdmin() {
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_URL}/user_actions`);
+            const res = await api.get(`/user_actions`);
             setLogs(Array.isArray(res.data) ? res.data : []);
             setError(null);
-        } catch (e) {
+        } catch {
             setError("Ошибка загрузки статистики");
             setLogs([]);
         } finally {

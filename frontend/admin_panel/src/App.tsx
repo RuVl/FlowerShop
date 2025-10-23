@@ -7,9 +7,11 @@ import Dashboard from './components/Dashboard';
 import AdminOrders from './components/AdminOrders';
 import SourcesAdmin from './components/SourcesAdmin';
 import StatisticsAdmin from './components/StatisticsAdmin';
+import BroadcastAdmin from './components/BroadcastAdmin';
+import Login from './components/Login';
 import { Box } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
-import BroadcastAdmin from './components/BroadcastAdmin';
+import { useAuth } from './context/AuthContext';
 
 const contentVariants = {
     initial: { opacity: 0, y: 20 },
@@ -19,10 +21,15 @@ const contentVariants = {
 
 const App: React.FC = () => {
     const [activeIndex, setActiveIndex] = useState(0);
+    const { isAuthenticated } = useAuth();
+
+    if (!isAuthenticated) {
+        return <Login />;
+    }
 
     return (
         <Box sx={{ display: 'flex', minHeight: '100vh', background: '#ffffff' }}>
-            <Sidebar activeIndex={activeIndex} onChange={setActiveIndex}/>
+            <Sidebar activeIndex={activeIndex} onChange={setActiveIndex} />
             <MainContent>
                 <AnimatePresence mode="wait">
                     <motion.div
@@ -34,27 +41,13 @@ const App: React.FC = () => {
                         transition={{ duration: 0.4 }}
                         style={{ width: '100%' }}
                     >
-                        {activeIndex === 0 && (
-                            <Dashboard/>
-                        )}
-                        {activeIndex === 1 && (
-                            <UsersAdmin/>
-                        )}
-                        {activeIndex === 2 && (
-                            <AdminOrders/>
-                        )}
-                        {activeIndex === 3 && (
-                            <StatisticsAdmin/>
-                        )}
-                        {activeIndex === 4 && (
-                            <ProductAdmin/>
-                        )}
-                        {activeIndex === 5 && (
-                            <BroadcastAdmin/>
-                        )}
-                        {activeIndex === 6 && (
-                            <SourcesAdmin/>
-                        )}
+                        {activeIndex === 0 && <Dashboard />}
+                        {activeIndex === 1 && <UsersAdmin />}
+                        {activeIndex === 2 && <AdminOrders />}
+                        {activeIndex === 3 && <StatisticsAdmin />}
+                        {activeIndex === 4 && <ProductAdmin />}
+                        {activeIndex === 5 && <BroadcastAdmin />}
+                        {activeIndex === 6 && <SourcesAdmin />}
                     </motion.div>
                 </AnimatePresence>
             </MainContent>

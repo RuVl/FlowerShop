@@ -11,7 +11,7 @@ from typing import Optional, Any, List
 from urllib.parse import unquote
 
 import jwt
-from fastapi import FastAPI, HTTPException, Body, Request
+from fastapi import FastAPI, HTTPException, Body, Request, Security
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,22 +21,16 @@ from sqlalchemy import select, delete
 from starlette.responses import JSONResponse
 from yookassa import Payment, Configuration
 
+from admin import admin_router, get_current_admin
 from database import async_session
 from database.models import User, Product, Order, CartItem, Transaction, Delivery, UserActionLog, Source, SourceVisit
 from database.models.cart_item import CartItemType
 from env import ServerKeys, YookassaKeys, RedisKeys
 
-logging.basicConfig(
-    level=logging.ERROR if not ServerKeys.DEBUG else logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler("app.log"),
-    ],
-)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+app.include_router(admin_router)
 
 # --- настройки ЮКасса ---
 Configuration.account_id = YookassaKeys.SHOP_ID
@@ -78,14 +72,14 @@ async def catch_root_webhook(request: Request):
     try:
         # noinspection DuplicatedCode
         payload = await request.json()
-        print(f"[Root Webhook] Получен запрос на /:")
-        print(f"[Root Webhook] Метод: {request.method}")
-        print(f"[Root Webhook] URL: {request.url}")
-        print(f"[Root Webhook] IP клиента: {request.client.host}")
-        print(f"[Root Webhook] Заголовки: {dict(request.headers)}")
-        print(f"[Root Webhook] Payload: {json.dumps(payload, ensure_ascii=False)}")
+        logger.info(f"[Root Webhook] Получен запрос на /:")
+        logger.info(f"[Root Webhook] Метод: {request.method}")
+        logger.info(f"[Root Webhook] URL: {request.url}")
+        logger.info(f"[Root Webhook] IP клиента: {request.client.host}")
+        logger.info(f"[Root Webhook] Заголовки: {dict(request.headers)}")
+        logger.info(f"[Root Webhook] Payload: {json.dumps(payload, ensure_ascii=False)}")
     except Exception as e:
-        print(f"[Root Webhook] Ошибка обработки: {str(e)}")
+        logger.info(f"[Root Webhook] Ошибка обработки: {str(e)}")
     raise HTTPException(
         status_code=400,
         detail="Неверный URL вебхука. Используйте /api/yookassa/webhook для ЮKassa вебхуков."
@@ -120,7 +114,7 @@ class NotificationRequest(BaseModel):
 
 
 @app.post("/api/broadcast")
-async def broadcast_api(data: BroadcastRequest = Body(...)):
+async def broadcast_api(data: BroadcastRequest = Body(...), _: dict = Security(get_current_admin)):
     async with async_session() as session:
         # Проверка входных данных
         if not data.message or (data.user_id is None and not data.all_users):
@@ -193,7 +187,7 @@ async def verify_init_data(init_data: str) -> dict:
         f"{k}={v}" for k, v in sorted(parsed_data.items(), key=itemgetter(0))
     )
     secret_key = hmac.new(
-        key=b"WebAppData", msg=ServerKeys.JWT_SECRET_KEY.encode(), digestmod=hashlib.sha256
+        key=b"WebAppData", msg=ServerKeys.TG_API_TOKEN.encode(), digestmod=hashlib.sha256
     )
     computed_hash = hmac.new(
         key=secret_key.digest(), msg=data_check_string.encode(), digestmod=hashlib.sha256
@@ -216,6 +210,7 @@ async def verify_init_data(init_data: str) -> dict:
     return user_data
 
 
+# Public
 @app.post("/api/auth")
 async def auth(data: AuthData = Body(...)):
     try:
@@ -243,7 +238,7 @@ async def auth(data: AuthData = Body(...)):
         token = jwt.encode({
             'user_id': user_data['id'],
             'exp': datetime.now() + timedelta(hours=24)
-        }, ServerKeys.JWT_SECRET_KEY, algorithm='HS256')
+        }, ServerKeys.TG_API_TOKEN, algorithm='HS256')
         return {'token': token}
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
@@ -265,6 +260,7 @@ class ProductOut(ProductIn):
     id: int
 
 
+# Public
 @app.get("/products", response_model=List[ProductOut])
 async def get_products():
     async with async_session() as session:
@@ -287,7 +283,7 @@ async def get_products():
 
 
 @app.post("/products", response_model=ProductOut)
-async def create_product(product: ProductIn):
+async def create_product(product: ProductIn, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         db_product = Product(
             title=product.title,
@@ -316,7 +312,7 @@ async def create_product(product: ProductIn):
 
 
 @app.put("/products/{product_id}", response_model=ProductOut)
-async def update_product(product_id: int, product: ProductIn):
+async def update_product(product_id: int, product: ProductIn, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(Product).where(Product.id == product_id)
         result = await session.execute(query)
@@ -347,7 +343,7 @@ async def update_product(product_id: int, product: ProductIn):
 
 
 @app.delete("/products/{product_id}")
-async def delete_product(product_id: int):
+async def delete_product(product_id: int, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(Product).where(Product.id == product_id)
         result = await session.execute(query)
@@ -428,7 +424,7 @@ class OrderFullOut(BaseModel):
 
 
 @app.get("/users", response_model=List[UserOut])
-async def get_users():
+async def get_users(_: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(User)
         result = await session.execute(query)
@@ -449,6 +445,7 @@ async def get_users():
         ]
 
 
+# Public
 @app.get("/users/{user_id}", response_model=UserOut)
 async def get_user(user_id: int):
     async with async_session() as session:
@@ -474,7 +471,7 @@ async def get_user(user_id: int):
 
 
 @app.put("/users/{user_id}", response_model=UserOut)
-async def update_user(user_id: int, update: UserUpdate):
+async def update_user(user_id: int, update: UserUpdate, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(User).where(User.user_id == user_id)
         result = await session.execute(query)
@@ -506,7 +503,7 @@ async def update_user(user_id: int, update: UserUpdate):
 
 
 @app.patch("/users/{user_id}/block", response_model=UserOut)
-async def block_user(user_id: int, update: UserBlockRequest):
+async def block_user(user_id: int, update: UserBlockRequest, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(User).filter_by(user_id=user_id)
         result = await session.execute(query)
@@ -533,7 +530,7 @@ async def block_user(user_id: int, update: UserBlockRequest):
 
 
 @app.patch("/users/{user_id}/balance", response_model=UserOut)
-async def update_user_balance(user_id: int, update: UserBalanceRequest):
+async def update_user_balance(user_id: int, update: UserBalanceRequest, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(User).where(User.user_id == user_id)
         result = await session.execute(query)
@@ -557,7 +554,7 @@ async def update_user_balance(user_id: int, update: UserBalanceRequest):
 
 
 @app.delete("/users/{user_id}")
-async def delete_user(user_id: int):
+async def delete_user(user_id: int, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(User).filter_by(user_id=user_id)
         result = await session.execute(query)
@@ -574,7 +571,7 @@ async def delete_user(user_id: int):
 
 # Поиск пользователей по номеру телефона или TG ID
 @app.get("/users/search", response_model=List[UserOut])
-async def search_users(q: str):
+async def search_users(q: str, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(User).filter(
             (User.phone_number.ilike(f"%{q}%")) | (User.user_id == q)
@@ -600,6 +597,7 @@ async def search_users(q: str):
         ]
 
 
+# Public
 @app.get("/users/{user_id}/orders", response_model=List[OrderOut])
 async def get_user_orders(user_id: int):
     async with async_session() as session:
@@ -646,7 +644,7 @@ class CartItemIn(BaseModel):
     deliveriesPerMonth: int = 1
     subscriptionMonths: int = 1
     type: CartItemType = CartItemType.ONE_TIME  # <-- добавить!
-    deliveryDate: str | None
+    deliveryDate: str | None = None
     title: str | None = ""
     photos: Optional[List[str]] = []
 
@@ -659,7 +657,7 @@ class CartItemOut(BaseModel):
     price: float
     deliveriesPerMonth: int = 1  # <-- добавить!
     subscriptionMonths: int = 1  # <-- добавить!
-    deliveryDate: str | None  # ISO format
+    deliveryDate: str | None = None  # ISO format
     type: CartItemType  # <-- добавить!
     title: str = ""
     photos: List[str] = []
@@ -742,8 +740,9 @@ async def remove_from_cart(item_id: int):
 # ----------- Заказы из корзины (frontend) -----------
 class CartOrderItem(BaseModel):
     product_id: int
-    deliveries_per_month: int
-    subscription_months: int
+    deliveries_per_month: int | None = None
+    subscription_months: int | None = None
+    deliveryDate: str | None = None
     price: int
     title: str
 
@@ -781,6 +780,7 @@ class OrderStatusUpdate(BaseModel):
     status: str
 
 
+# Public
 @app.post("/orders", response_model=OrderOut)
 async def create_order(order: OrderIn):
     async with async_session() as session:
@@ -865,7 +865,7 @@ async def create_order(order: OrderIn):
 
 
 @app.get("/orders", response_model=List[OrderFullOut])
-async def get_all_orders():
+async def get_all_orders(_: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(Order).filter(Order.status.notin_(["pending_payment", "canceled"]))
         query_result = await session.execute(query)
@@ -897,7 +897,7 @@ async def get_all_orders():
 
 
 @app.patch("/orders/{order_id}/status", response_model=OrderOut)
-async def update_order_status(order_id: int, req: OrderStatusUpdate):
+async def update_order_status(order_id: int, req: OrderStatusUpdate, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(Order).where(Order.id == order_id)
         result = await session.execute(query)
@@ -926,7 +926,7 @@ async def update_order_status(order_id: int, req: OrderStatusUpdate):
 
 
 @app.get("/orders/{order_id}/deliveries", response_model=List[DeliveryOut])
-async def get_order_deliveries(order_id: int):
+async def get_order_deliveries(order_id: int, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(Delivery).where(Delivery.order_id == order_id)
         result = await session.execute(query)
@@ -934,6 +934,7 @@ async def get_order_deliveries(order_id: int):
         return [DeliveryOut(id=d.id, delivery_date=d.delivery_date.isoformat(), status=d.status) for d in deliveries]
 
 
+# Public
 @app.get("/api/user/{user_id}/transactions", response_model=List[TransactionOut])
 async def get_user_transactions(user_id: int):
     async with async_session() as session:
@@ -962,7 +963,7 @@ class DeliveryStatusUpdate(BaseModel):
 
 
 @app.patch("/deliveries/{delivery_id}/date", response_model=DeliveryOut)
-async def update_delivery_date(delivery_id: int, req: UpdateDeliveryDateRequest):
+async def update_delivery_date(delivery_id: int, req: UpdateDeliveryDateRequest, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(Delivery).where(Delivery.id == delivery_id)
         result = await session.execute(query)
@@ -980,7 +981,7 @@ async def update_delivery_date(delivery_id: int, req: UpdateDeliveryDateRequest)
 
 
 @app.patch("/deliveries/{delivery_id}/status", response_model=DeliveryOut)
-async def update_delivery_status(delivery_id: int, req: DeliveryStatusUpdate):
+async def update_delivery_status(delivery_id: int, req: DeliveryStatusUpdate, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(Delivery).where(Delivery.id == delivery_id)
         result = await session.execute(query)
@@ -1019,6 +1020,7 @@ def format_phone(phone: str) -> str:
     return None
 
 
+# Public
 @app.post("/api/pay", response_model=dict)
 async def create_payment(data: CreatePaymentRequest):
     async with async_session() as session:
@@ -1113,14 +1115,17 @@ class DepositPayRequest(BaseModel):
     return_url: str
 
 
+# Public
 @app.post("/api/deposit_pay")
 async def deposit_pay(data: DepositPayRequest):
     async with async_session() as session:
         query = select(User).where(User.user_id == data.user_id)
         result = await session.execute(query)
         user = result.scalar_one_or_none()
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+
         payment = Payment.create({
             "amount": {
                 "value": str(round(data.amount, 2)),
@@ -1133,6 +1138,7 @@ async def deposit_pay(data: DepositPayRequest):
             "capture": True,
             "description": data.description
         })
+
         db_tran = Transaction(
             user_id=data.user_id,
             order_id=None,
@@ -1143,9 +1149,11 @@ async def deposit_pay(data: DepositPayRequest):
             timestamp=datetime.now(),
             description=data.description
         )
+
         session.add(db_tran)
         await session.commit()
         await session.refresh(db_tran)
+
         return {
             "confirmation_url": payment.confirmation.confirmation_url,
             "payment_id": payment.id,
@@ -1154,25 +1162,25 @@ async def deposit_pay(data: DepositPayRequest):
         }
 
 
+# Public
 @app.post("/api/deposit_pay_web")
 async def deposit_pay_web(data: DepositPayRequest):
     return await deposit_pay(data)
 
 
+# Public
 @app.post("/api/yookassa/webhook")
 async def yookassa_webhook(request: Request):
     try:
         payload = await request.json()
-        print(f"[Webhook] Получен запрос на /api/yookassa/webhook:")
-        print(f"[Webhook] Метод: {request.method}")
-        print(f"[Webhook] URL: {request.url}")
-        print(f"[Webhook] IP клиента: {request.client.host}")
-        print(f"[Webhook] Заголовки: {dict(request.headers)}")
-        print(f"[Webhook] Payload: {json.dumps(payload, ensure_ascii=False)}")
+        logger.info(f"[Webhook] Получен запрос на /api/yookassa/webhook:")
+        logger.info(f"[Webhook] IP клиента: {request.client.host}")
+        logger.info(f"[Webhook] Заголовки: {dict(request.headers)}")
+        logger.info(f"[Webhook] Payload: {json.dumps(payload, ensure_ascii=False)}")
 
         # Проверка структуры payload
         if not isinstance(payload, dict) or "object" not in payload or "event" not in payload:
-            print("[Webhook] Неверная структура payload")
+            logger.info("[Webhook] Неверная структура payload")
             raise HTTPException(status_code=400, detail="Invalid payload structure")
 
         event = payload.get("event")
@@ -1180,10 +1188,10 @@ async def yookassa_webhook(request: Request):
         payment_id = payment_obj.get("id")
         status = payment_obj.get("status")
 
-        print(f"[Webhook] Получено событие: {event}, статус платежа: {status}, payment_id: {payment_id}")
+        logger.info(f"[Webhook] Получено событие: {event}, статус платежа: {status}, payment_id: {payment_id}")
 
         if not payment_id or not status:
-            print("[Webhook] Отсутствует payment_id или status")
+            logger.info("[Webhook] Отсутствует payment_id или status")
             raise HTTPException(status_code=400, detail="Missing payment_id or status")
 
         # Проверка IP ЮKassa (обновлённый список)
@@ -1204,33 +1212,34 @@ async def yookassa_webhook(request: Request):
                 ip_allowed = True
                 break
         if not ip_allowed:
-            print(f"[Webhook] Неверный IP: {client_ip}")
+            logger.info(f"[Webhook] Неверный IP: {client_ip}")
             raise HTTPException(status_code=403, detail="Invalid source IP")
 
         async with async_session() as session:
-            query = select(Transaction).filter_by(payment_id=payment_id)
+            query = select(Transaction).where(Transaction.payment_id == payment_id)
             query_result = await session.execute(query)
-            transaction = query_result.first()
+            transaction = query_result.scalar_one_or_none()
+
             if not transaction:
-                print(f"[Webhook] Транзакция с payment_id {payment_id} не найдена")
+                logger.info(f"[Webhook] Транзакция с payment_id {payment_id} не найдена")
                 raise HTTPException(status_code=404, detail="Transaction not found")
-            print(f"[Webhook] Найдена транзакция: id={transaction.id}, order_id={transaction.order_id}, user_id={transaction.user_id}, status={transaction.status}")
+            logger.info(f"[Webhook] Найдена транзакция: id={transaction.id}, order_id={transaction.order_id}, user_id={transaction.user_id}, status={transaction.status}")
 
             # Обновление статуса транзакции
             old_tran_status = transaction.status
             transaction.status = status
             transaction.updated_at = datetime.now()
-            print(f"[Webhook] Статус транзакции обновлён: {old_tran_status} -> {transaction.status}")
+            logger.info(f"[Webhook] Статус транзакции обновлён: {old_tran_status} -> {transaction.status}")
 
             # Работа с заказом
             if transaction.order_id:
                 query = select(Order).filter_by(id=transaction.order_id)
                 query_result = await session.execute(query)
-                order = query_result.first()
+                order = query_result.scalar_one_or_none()
                 if not order:
-                    print(f"[Webhook] Заказ с id {transaction.order_id} не найден")
+                    logger.info(f"[Webhook] Заказ с id {transaction.order_id} не найден")
                 else:
-                    print(f"[Webhook] Заказ найден: id={order.id}, user_id={order.user_id}, status={order.status}, total_amount={order.total_amount}")
+                    logger.info(f"[Webhook] Заказ найден: id={order.id}, user_id={order.user_id}, status={order.status}, total_amount={order.total_amount}")
 
                     # Логика по статусу платежа
                     if status == "succeeded":
@@ -1241,7 +1250,7 @@ async def yookassa_webhook(request: Request):
                         query = delete(CartItem).filter_by(user_id=order.user_id)
                         await session.execute(query)
 
-                        print(f"[Webhook] Заказ {order.id}: статус обновлён {old_order_status} -> {order.status}, корзина очищена для user_id {order.user_id}")
+                        logger.info(f"[Webhook] Заказ {order.id}: статус обновлён {old_order_status} -> {order.status}, корзина очищена для user_id {order.user_id}")
                         notification_data = {
                             "user_id": order.user_id,
                             "text": f"Ваш заказ #{order.id} успешно оплачен!\n\nВы можете следить за его статусом в разделе Профиль Mini App🤍"
@@ -1252,7 +1261,7 @@ async def yookassa_webhook(request: Request):
                         old_order_status = order.status
                         order.status = "canceled"
                         order.updated_at = datetime.now()
-                        print(f"[Webhook] Заказ {order.id}: статус обновлён {old_order_status} -> {order.status}")
+                        logger.info(f"[Webhook] Заказ {order.id}: статус обновлён {old_order_status} -> {order.status}")
                         try:
                             notification_data = {
                                 "user_id": order.user_id,
@@ -1261,19 +1270,19 @@ async def yookassa_webhook(request: Request):
                             redis_client = Redis(host=RedisKeys.HOST, port=RedisKeys.PORT, db=RedisKeys.DATABASE, decode_responses=True)
                             await redis_client.publish(RedisKeys.NOTIFICATION_CHANNEL, json.dumps(notification_data))
                         except Exception as e:
-                            print(f"[Webhook] Ошибка отправки уведомления Telegram: {str(e)}")
+                            logger.info(f"[Webhook] Ошибка отправки уведомления Telegram: {str(e)}")
                     elif status == "waiting_for_capture":
-                        print(f"[Webhook] Платёж ожидает подтверждения (waiting_for_capture) для заказа {order.id}")
+                        logger.info(f"[Webhook] Платёж ожидает подтверждения (waiting_for_capture) для заказа {order.id}")
                         # Здесь можете реализовать логику подтверждения платежа через ЮKassa при необходимости
                     else:
-                        print(f"[Webhook] Неизвестный статус платежа: {status}")
+                        logger.info(f"[Webhook] Неизвестный статус платежа: {status}")
 
             # Внутри webhook, после проверки transaction и payment
             if transaction.order_id is None and status == "succeeded":
                 # Пополнение баланса target_user
                 query = select(User).filter_by(user_id=transaction.user_id)
                 query_result = await session.execute(query)
-                target_user = query_result.first()
+                target_user = query_result.scalar_one_or_none()
                 if target_user:
                     target_user.balance = float(target_user.balance or 0) + float(transaction.amount)
                     await session.commit()
@@ -1289,7 +1298,7 @@ async def yookassa_webhook(request: Request):
                     if hasattr(transaction, "payer_id") and transaction.payer_id:
                         query = select(User).filter_by(user_id=transaction.payer_id)
                         query_result = await session.execute(query)
-                        payer = query_result.first()
+                        payer = query_result.scalar_one_or_none()
                         if payer:
                             display = f"@{target_user.username}" if target_user.username else f"{target_user.user_id}"
                             notification_data = {
@@ -1300,10 +1309,12 @@ async def yookassa_webhook(request: Request):
                             await redis_client.publish(RedisKeys.NOTIFICATION_CHANNEL, json.dumps(notification_data))
 
             await session.commit()
-            print(f"[Webhook] Успешно обработан вебхук для payment_id {payment_id}, статус: {status}")
+            logger.info(f"[Webhook] Успешно обработан вебхук для payment_id {payment_id}, статус: {status}")
             return {"ok": True}
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        print(f"[Webhook] Ошибка обработки вебхука: {str(e)}")
+        logger.info(f"[Webhook] Ошибка обработки вебхука: {e!r}")
         raise HTTPException(status_code=500, detail=f"Webhook error: {str(e)}")
 
 
@@ -1323,6 +1334,7 @@ class UserActionLogOut(BaseModel):
     data: Optional[Any]
 
 
+# Public
 @app.post("/user_action", response_model=UserActionLogOut)
 async def log_user_action(log: UserActionLogIn):
     async with async_session() as session:
@@ -1347,7 +1359,7 @@ async def log_user_action(log: UserActionLogIn):
 
 
 @app.get("/user_actions", response_model=List[UserActionLogOut])
-async def get_user_actions(user_id: Optional[int] = None, action: Optional[str] = None):
+async def get_user_actions(user_id: Optional[int] = None, action: Optional[str] = None, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(UserActionLog)
         if user_id is not None:
@@ -1403,7 +1415,7 @@ class SourceVisitLog(BaseModel):
 
 
 @app.post("/sources", response_model=SourceOut)
-async def create_source(data: SourceCreate):
+async def create_source(data: SourceCreate, _: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(Source).where(Source.start_param == data.start_param)
         result = await session.execute(query)
@@ -1429,7 +1441,7 @@ async def create_source(data: SourceCreate):
 
 
 @app.get("/sources", response_model=List[SourceOut])
-async def get_sources():
+async def get_sources(_: dict = Security(get_current_admin)):
     async with async_session() as session:
         query = select(Source)
         result = await session.execute(query)
@@ -1466,6 +1478,7 @@ async def get_sources():
         return result_list
 
 
+# Public
 @app.post("/source_visit")
 async def log_source_visit(data: SourceVisitLog):
     async with async_session() as session:

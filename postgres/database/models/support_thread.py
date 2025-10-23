@@ -1,6 +1,6 @@
 from sqlalchemy import Column, BigInteger, DateTime, func
 
-from database.models import Base
+from .base import Base
 
 
 class SupportThread(Base):

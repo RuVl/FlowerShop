@@ -14,7 +14,7 @@ export function About() {
                 <ul className="about-policy-list">
                     <li>
                         <a
-                            href="https://drive.google.com/drive/u/1/folders/1vTo1VRXjN0-lcNymE_TRhMn4fDMW83m5"
+                            href="https://drive.google.com/file/d/1IS5B_lp6cQz5hk51qaMVGAUN_-jfQeR4/view"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="about-link"
@@ -24,7 +24,7 @@ export function About() {
                     </li>
                     <li>
                         <a
-                            href="https://drive.google.com/drive/u/1/folders/1vTo1VRXjN0-lcNymE_TRhMn4fDMW83m5"
+                            href="https://drive.google.com/file/d/1hisYTNenLLkm616qwO5Jbpx88U3etdmt/view"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="about-link"
