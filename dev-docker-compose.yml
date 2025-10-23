@@ -89,10 +89,26 @@ services:
     volumes:
       - redis_volume:/data
 
+  nginx-proxy:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.dev
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - soinshop_frontend
+    depends_on:
+      - frontend-main
+      - frontend-admin-panel
+
   frontend-main:
     build:
       context: ./frontend/main
       dockerfile: Dockerfile.dev
+    restart: unless-stopped
+#    volumes:
+#      - ./frontend/main:/app
     env_file:
       - frontend/main/dev.env
     ports:
@@ -107,6 +123,9 @@ services:
     build:
       context: ./frontend/admin_panel
       dockerfile: Dockerfile.dev
+    restart: unless-stopped
+#    volumes:
+#      - ./frontend/admin_panel:/app
     env_file:
       - frontend/admin_panel/dev.env
     ports:
@@ -116,16 +135,3 @@ services:
     networks:
       - soinshop_frontend
       - soinshop_backend
-
-  nginx-proxy:
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile.dev
-    ports:
-      - "80:80"
-      - "443:443"
-    networks:
-      - soinshop_frontend
-    depends_on:
-      - frontend-main
-      - frontend-admin-panel

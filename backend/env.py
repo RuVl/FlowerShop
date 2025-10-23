@@ -4,7 +4,15 @@ from typing import Final
 
 class ServerKeys:
     DEBUG: Final[bool] = bool(environ.get("DEBUG", default=False))
-    JWT_SECRET_KEY: Final[str] = environ.get('JWT_SECRET_KEY')  # Bot token
+
+    JWT_SECRET_KEY: Final[str] = environ.get('JWT_SECRET_KEY')
+    TG_API_TOKEN: Final[str] = environ.get('TG_API_TOKEN')  # Bot token
+
+    SERVER_HOST: Final[str] = environ.get('SERVER_HOST', default="0.0.0.0")
+    SERVER_PORT: Final[int] = int(environ.get('SERVER_PORT', default=8080))
+
+    ALLOW_PROXY: Final[bool] = bool(environ.get("ALLOW_PROXY", default=False))
+    ALLOWED_PROXY_IP: Final[list[str]] = list(environ.get("ALLOWED_PROXY_IP", default='').split(','))
 
 
 class YookassaKeys:

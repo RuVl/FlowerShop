@@ -174,7 +174,11 @@ export function Menu({ onGoToCart }: { onGoToCart?: () => void }) {
                     {items.map(item => (
                         <div key={item.id} className="item-card">
                             <div className="item-image-container" onClick={() => openModal(item)}>
-                                <img src={item.photos[0]} alt={item.title} className="item-image active"/>
+                                {item.photos && item.photos[0] ? (
+                                    <img src={item.photos[0]} alt={item.title} className="cart-item-image"/>
+                                ) : (
+                                    <div className="cart-item-no-image">Нет фото</div>
+                                )}
                                 {item.photos.length > 1 && (
                                     <div className="slider-indicators">
                                         {item.photos.map((_, idx) => (

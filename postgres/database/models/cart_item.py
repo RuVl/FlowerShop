@@ -5,8 +5,8 @@ from sqlalchemy import BigInteger, String, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 from sqlalchemy.types import DECIMAL
 
-from database.models import Base, User
 from database.utils import EnumByValues
+from .base import Base
 
 
 @enum.verify(enum.NAMED_FLAGS)
@@ -37,4 +37,4 @@ class CartItem(Base):
     title: Mapped[str] = mapped_column(String, default="")  # <-- добавить!
     photos: Mapped[str] = mapped_column(String, default="[]")  # <-- добавить!
 
-    user: Mapped['User'] = relationship("User", back_populates="cart_items", foreign_keys=[user_id])
+    user = relationship("User", back_populates="cart_items", foreign_keys=[user_id])

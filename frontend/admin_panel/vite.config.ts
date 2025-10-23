@@ -9,4 +9,7 @@ export default defineConfig({
         port: 3000, // админка
         allowedHosts: ['admin.soinshop.ru']
     },
+    build: {
+        assetsInlineLimit: 4096
+    }
 })

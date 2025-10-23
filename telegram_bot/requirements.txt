@@ -3,13 +3,14 @@ aiogram~=3.22.0
 #aiogram-dialog[tools]~=2.3.1
 
 # Cache
-redis[hiredis]~=6.4.0
+redis[hiredis]~=7.0.0
 
 # Database
 alembic~=1.17.0  # migrations
 alembic-postgresql-enum~=1.8.0  # psql enum migrations
 SQLAlchemy[asyncio]~=2.0.40  # ORM
 asyncpg~=0.30.0  # driver
+bcrypt~=5.0.0  # auth
 
 # L10n
 fluent.runtime~=0.4.0

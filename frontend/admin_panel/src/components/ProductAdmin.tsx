@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { api } from "./api";
 import {
     Box,
@@ -78,7 +77,7 @@ const ProductAdmin: React.FC = () => {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const res = await api.get(`${API_URL}/products`);
+            const res = await api.get('/products');
             console.debug("API response for /products:", res.data);
             if (Array.isArray(res.data)) {
                 setProducts(res.data);
@@ -88,7 +87,7 @@ const ProductAdmin: React.FC = () => {
                 console.error("products is not array!", res.data);
                 setProducts([]);
             }
-        } catch (e: any) {
+        } catch (e) {
             console.error("Ошибка при загрузке товаров:", e);
             setProducts([]);
         } finally {
@@ -172,13 +171,13 @@ const ProductAdmin: React.FC = () => {
         if (!form.title.trim() || !form.price_per_delivery || !form.max_deliveries || !form.max_months) return;
         try {
             if (editId !== null) {
-                await axios.put(`${API_URL}/products/${editId}`, form);
+                await api.put(`/products/${editId}`, form);
             } else {
-                await axios.post(`${API_URL}/products`, form);
+                await api.post('/products', form);
             }
-            fetchProducts();
+            await fetchProducts();
             handleClose();
-        } catch (e) {
+        } catch {
             alert("Ошибка при сохранении товара");
         }
     };
@@ -188,8 +187,8 @@ const ProductAdmin: React.FC = () => {
     const handleDelete = async () => {
         try {
             if (deleteId) {
-                await axios.delete(`${API_URL}/products/${deleteId}`);
-                fetchProducts();
+                await api.delete(`/products/${deleteId}`);
+                await fetchProducts();
             }
         } catch {
             alert("Ошибка при удалении товара");

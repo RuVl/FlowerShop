@@ -2,7 +2,8 @@ from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 from sqlalchemy.types import DECIMAL
 
-from database.models import Base, Delivery
+from .base import Base
+from .delivery import Delivery
 
 
 class Order(Base):
@@ -17,7 +18,7 @@ class Order(Base):
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
-    items = Column(String, nullable=True)
+    items = Column(String, nullable=True)  # json, OMG
     order_type = Column(String, default='one-time')  # <-- добавлено!
 
     fio = Column(String, nullable=True)  # <-- Добавить

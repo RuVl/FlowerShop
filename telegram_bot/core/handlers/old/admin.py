@@ -1,8 +1,9 @@
 from aiogram import Router, F
 from aiogram.types import Message
-from env import TelegramKeys
 from fluent.runtime import FluentLocalization
 from structlog.typing import FilteringBoundLogger
+
+from env import TelegramKeys
 
 admin_router = Router()
 
@@ -19,7 +20,7 @@ async def handle_admin_reply_any(message: Message, l10n: FluentLocalization, log
                 return
             await message.bot.send_message(user_id, f"Ответ администратора по вашему вопросу:\n{message.text}")
             await message.reply(l10n.format_value('admin-reply-sent', {'user_id': user_id}))
-            logger.info(f"Admin reply sent to old {user_id}: {message.text}")
+            await logger.ainfo(f"Admin reply sent to {user_id}: {message.text}")
             return
 
     if message.text.startswith("/done"):
@@ -27,7 +28,7 @@ async def handle_admin_reply_any(message: Message, l10n: FluentLocalization, log
         if len(parts) == 2 and parts[1].isdigit():
             user_id = int(parts[1])
             await message.reply(l10n.format_value('admin-dialog-done', {'user_id': user_id}))
-            logger.info(f"Admin finished dialog with old {user_id}")
+            await logger.ainfo(f"Admin finished dialog with {user_id}")
         else:
             await message.reply(l10n.format_value('admin-done-usage'))
         return

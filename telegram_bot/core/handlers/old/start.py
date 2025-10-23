@@ -1,20 +1,19 @@
 import aiohttp
-import segno
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from aiogram.utils.deep_linking import create_start_link
-from core.fsm import DepositState
-from core.keyboards.inline import get_main_menu
-from core.keyboards.reply import get_contact_button
-from env import ServerKeys
 from fluent.runtime import FluentLocalization
 from sqlalchemy import select
 from structlog.typing import FilteringBoundLogger
 
+from core.fsm import DepositState
+from core.keyboards.inline import get_main_menu
+from core.keyboards.reply import get_contact_button
 from database import async_session
 from database.models import User
+from env import ServerKeys
 
 start_router = Router()
 
@@ -88,11 +87,11 @@ async def handle_contact(message: Message, l10n: FluentLocalization, logger: Fil
     phone_number = contact.phone_number
     chat_id = message.chat.id
     user_username = message.from_user.username
-    logger.info(f"Received contact from old {user_id}: {phone_number}")
+    await logger.ainfo(f"Received contact from {user_id}: {phone_number}")
 
     # Create the link and qr-code
     deposit_link = await create_start_link(bot=bot, payload=f'deposit_{user_id}')
-    qr_code = segno.make(deposit_link, micro=False)
+    # qr_code = segno.make(deposit_link, micro=False)
 
     async with async_session() as session:
         query = select(User).where(User.user_id == user_id)
@@ -103,17 +102,16 @@ async def handle_contact(message: Message, l10n: FluentLocalization, logger: Fil
                 user_id=user_id,
                 phone_number=phone_number,
                 deposit_link=deposit_link,
-                qr_code=qr_code,
                 username=user_username,
             )
             session.add(user)
         else:
             user.phone_number = phone_number
             user.deposit_link = deposit_link
-            user.qr_code = qr_code
             user.username = user_username
+        await session.commit()
 
-    logger.info(f"Saved/updated old {user_id} in database")
+    await logger.ainfo(f"Saved/updated {user_id} in database")
 
     await bot.send_message(
         chat_id,

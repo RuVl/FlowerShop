@@ -1,7 +1,7 @@
 from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
-from database.models import Base
+from .base import Base
 
 
 class Delivery(Base):

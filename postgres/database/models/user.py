@@ -1,7 +1,7 @@
 from sqlalchemy import Column, BigInteger, String, DateTime, func, DECIMAL, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
-from database.models import Base
+from .base import Base
 
 
 class User(Base):
@@ -18,7 +18,6 @@ class User(Base):
     last_name = Column(String, nullable=True)
 
     deposit_link = Column(String, nullable=True)
-    qr_code = Column(String, nullable=True)
     balance = Column(DECIMAL(precision=10, scale=2), default=0.00)
 
     daily_launches = Column(Integer, default=0)
