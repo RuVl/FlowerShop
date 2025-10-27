@@ -20,8 +20,7 @@ COPY ./soinshop.conf /etc/nginx/conf.d/default.conf
 RUN mkdir -p /usr/www/logs && touch /usr/www/logs/nginx_access.log /usr/www/logs/nginx_error.log
 
 # Start nginx to serve the application (in foreground)
-ENTRYPOINT exec service cron start && nginx -g 'daemon off;'
-
+ENTRYPOINT ["/bin/bash", "-c", "cron && nginx -g 'daemon off;'"]
 
 # Once container created - generate SSL certificates inside container:
 # certbot --nginx -d app.soinshop.ru -d admin.soinshop.ru -d api.soinshop.ru --cert-name=soinshop.ru --email $DOMAIN_EMAIL --key-type rsa --agree-tos
