@@ -5,6 +5,9 @@ volumes:
   redis_volume:
     name: soinshop_cache
 
+  nginx_volume:
+    name: soinshop_certs
+
 networks:
   backend:
     driver: bridge
@@ -94,6 +97,9 @@ services:
       context: ./nginx
       dockerfile: Dockerfile
     restart: unless-stopped
+    volumes:
+      - nginx_volume:/etc/letsencrypt
+    env_file: nginx/.env
     ports:
       - "80:80"
       - "443:443"

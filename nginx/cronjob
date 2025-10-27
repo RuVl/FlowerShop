@@ -1,0 +1,1 @@
+@monthly /usr/local/bin/certbot-renew.sh >> /var/log/cron.log 2>&1
